@@ -1424,8 +1424,20 @@ def laporan():
         flash('Akses ditolak! Hanya admin yang bisa melihat laporan.', 'danger')
         return redirect(url_for('index'))
     
-    tanggal_mulai = request.args.get('tanggal_mulai', date.today().strftime('%Y-%m-%d'))
-    tanggal_selesai = request.args.get('tanggal_selesai', date.today().strftime('%Y-%m-%d'))
+    # Get date parameters and convert to date objects
+    try:
+        tanggal_mulai_str = request.args.get('tanggal_mulai', date.today().strftime('%Y-%m-%d'))
+        tanggal_selesai_str = request.args.get('tanggal_selesai', date.today().strftime('%Y-%m-%d'))
+        
+        # Parse strings to date objects
+        from datetime import datetime as dt
+        tanggal_mulai = dt.strptime(tanggal_mulai_str, '%Y-%m-%d').date()
+        tanggal_selesai = dt.strptime(tanggal_selesai_str, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        tanggal_mulai = date.today()
+        tanggal_selesai = date.today()
+        tanggal_mulai_str = tanggal_mulai.strftime('%Y-%m-%d')
+        tanggal_selesai_str = tanggal_selesai.strftime('%Y-%m-%d')
     
     transaksi_list = Transaksi.query.filter(
         db.func.date(Transaksi.tanggal) >= tanggal_mulai,
