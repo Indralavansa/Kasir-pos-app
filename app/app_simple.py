@@ -205,13 +205,29 @@ login_manager.login_message_category = 'info'
 csrf = CSRFProtect(app)
 
 # ==================== AUTOMATIC DATABASE INITIALIZATION ====================
-print("[DB] Initializing database tables...")
-with app.app_context():
-    try:
-        db.create_all()
-        print("[DB] ✅ Database tables initialized!")
-    except Exception as e:
-        print(f"[DB] ⚠️  Table creation warning: {e}")
+_db_initialized = False
+
+def init_db():
+    """Initialize database with proper error handling"""
+    global _db_initialized
+    if _db_initialized:
+        return
+    
+    print("[DB] Initializing database tables...")
+    with app.app_context():
+        try:
+            # Create all tables
+            db.create_all()
+            db.session.commit()
+            print("[DB] OK - Database tables initialized!")
+            _db_initialized = True
+                    
+        except Exception as e:
+            print(f"[DB] ERROR - Error initializing database: {e}")
+            try:
+                db.session.rollback()
+            except:
+                pass
 
 # ==================== MEMBER CONFIG ====================
 
@@ -429,6 +445,37 @@ class Pengaturan(db.Model):
             db.session.add(setting)
         db.session.commit()
 
+# ==================== DATABASE INITIALIZATION ====================
+# Initialize database and create admin user
+def ensure_admin_user():
+    """Create admin user if doesn't exist"""
+    try:
+        admin_exists = db.session.query(User).filter_by(username='admin').first()
+        if not admin_exists:
+            admin = User(
+                username='admin',
+                nama='Administrator',
+                role='admin'
+            )
+            admin.set_password('Admin123')
+            db.session.add(admin)
+            db.session.commit()
+            print("[DB] OK - Admin user created: admin / Admin123")
+    except Exception as e:
+        print(f"[DB] WARNING - Could not create admin user: {e}")
+        try:
+            db.session.rollback()
+        except:
+            pass
+
+# Initialize DB on startup
+with app.app_context():
+    try:
+        init_db()
+        ensure_admin_user()
+    except Exception as e:
+        print(f"[STARTUP] ERROR - Initialization error: {e}")
+
 # ==================== FORMS ====================
 
 class LoginForm(FlaskForm):
@@ -538,22 +585,6 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'], strict_slashes=False)
 def login():
-    # Ensure admin user exists (first-time setup)
-    try:
-        admin_count = User.query.filter_by(username='admin').count()
-        if admin_count == 0:
-            admin = User(
-                username='admin',
-                nama='Administrator',
-                role='admin'
-            )
-            admin.set_password('Admin123')
-            db.session.add(admin)
-            db.session.commit()
-            print("[INIT] Admin user created: admin / Admin123")
-    except Exception as e:
-        print(f"[INIT] Could not check/create admin user: {e}")
-    
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     
