@@ -266,11 +266,11 @@ def check_navigation():
         # If user tries to access login page while logged in, redirect to index
         # But allow register page for admin to add new users
         if request.endpoint == 'login':
-            return redirect(url_for('index'))
+            return redirect(url_for('index'), code=302)
     else:
         # If not logged in, only allow login/register and public assets
         if request.endpoint and request.endpoint not in ['login', 'register', 'static', 'serve_img']:
-            return redirect(url_for('login'))
+            return redirect(url_for('login'), code=302)
 
 @app.after_request
 def add_security_headers(response):
@@ -515,7 +515,7 @@ def load_user(user_id):
 
 # ==================== ROUTES ====================
 
-@app.route('/')
+@app.route('/', strict_slashes=False)
 def index():
     if not current_user.is_authenticated:
         return redirect(url_for('login'))
@@ -536,7 +536,7 @@ def index():
         print(f"[ERROR] Index route: {e}")
         return redirect(url_for('login'))
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'], strict_slashes=False)
 def login():
     # Ensure admin user exists (first-time setup)
     try:
