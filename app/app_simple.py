@@ -468,11 +468,86 @@ def ensure_admin_user():
         except:
             pass
 
+def seed_data_from_file():
+    """Auto-seed data from JSON if database is empty"""
+    try:
+        # Check if data already exists
+        if Kategori.query.count() > 0 or Produk.query.count() > 0:
+            return
+        
+        # Load data from JSON
+        data_file = os.path.join(base_app_dir, 'data', 'production_data_export.json')
+        if not os.path.exists(data_file):
+            return
+        
+        with open(data_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        print("[SEED] Seeding data from production_data_export.json...")
+        
+        # Import Kategori
+        kategori_map = {}
+        for k_data in data.get('kategori', []):
+            k = Kategori(
+                nama=k_data['nama'],
+                deskripsi=k_data.get('deskripsi')
+            )
+            db.session.add(k)
+        db.session.commit()
+        
+        for k_data in data.get('kategori', []):
+            k = Kategori.query.filter_by(nama=k_data['nama']).first()
+            if k:
+                kategori_map[k_data['id']] = k.id
+        
+        print(f"[SEED] OK - {len(kategori_map)} kategori seeded")
+        
+        # Import Produk
+        for p_data in data.get('produk', []):
+            p = Produk(
+                kode=p_data['kode'],
+                nama=p_data['nama'],
+                deskripsi=p_data.get('deskripsi'),
+                harga_beli=p_data['harga_beli'],
+                harga_jual=p_data['harga_jual'],
+                stok=p_data['stok'],
+                kategori_id=kategori_map.get(p_data['kategori_id']),
+                minimal_stok=p_data.get('minimal_stok', 5),
+                satuan=p_data.get('satuan', 'pcs')
+            )
+            db.session.add(p)
+        db.session.commit()
+        print(f"[SEED] OK - {len(data.get('produk', []))} produk seeded")
+        
+        # Import Member
+        for m_data in data.get('member', []):
+            if not Member.query.filter_by(nama=m_data['nama']).first():
+                m = Member(
+                    nama=m_data['nama'],
+                    no_telp=m_data.get('no_telp'),
+                    alamat=m_data.get('alamat'),
+                    catatan=m_data.get('catatan'),
+                    points=m_data.get('points', 0),
+                    total_spent=m_data.get('total_spent', 0)
+                )
+                db.session.add(m)
+        if data.get('member', []):
+            db.session.commit()
+            print(f"[SEED] OK - {len(data.get('member', []))} member seeded")
+            
+    except Exception as e:
+        print(f"[SEED] WARNING - Could not seed data: {e}")
+        try:
+            db.session.rollback()
+        except:
+            pass
+
 # Initialize DB on startup
 with app.app_context():
     try:
         init_db()
         ensure_admin_user()
+        seed_data_from_file()
     except Exception as e:
         print(f"[STARTUP] ERROR - Initialization error: {e}")
 
