@@ -12,6 +12,7 @@ from flask_wtf.csrf import CSRFError, generate_csrf
 from wtforms import StringField, PasswordField, SubmitField, DecimalField, IntegerField, SelectField, TextAreaField, HiddenField
 from wtforms.validators import DataRequired, Length, NumberRange, ValidationError, Optional
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.middleware.proxy_fix import ProxyFix
 from datetime import datetime as dt, date
 import json
 import io
@@ -180,6 +181,17 @@ else:
         print(f"[DB] Using PostgreSQL: {DATABASE_URL.split('@')[0][:50]}...")
 
 app = Flask(__name__)
+
+# Apply ProxyFix middleware for Render proxy headers (HTTPS, remote addr, etc)
+app.wsgi_app = ProxyFix(
+    app.wsgi_app,
+    x_for=1,        # Trust X-Forwarded-For
+    x_proto=1,      # Trust X-Forwarded-Proto
+    x_host=1,       # Trust X-Forwarded-Host
+    x_port=1,       # Trust X-Forwarded-Port
+    x_prefix=1      # Trust X-Forwarded-Prefix
+)
+
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'rahasia-sangat-rahasia-123456-dev')
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -199,7 +211,15 @@ print(f"[DB] Final DATABASE_URI: {DATABASE_URL[:70]}...")
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+login_manager.login_message = 'Silakan login terlebih dahulu'
+login_manager.login_message_category = 'info'
 csrf = CSRFProtect(app)
+
+# ==================== CUSTOM UNAUTHORIZED HANDLER ====================
+@login_manager.unauthorized_handler
+def unauthorized():
+    """Handle unauthorized access cleanly without redirect loops"""
+    return redirect(url_for('login'))
 
 # ==================== AUTOMATIC DATABASE INITIALIZATION ====================
 print("[DB] Initializing database tables...")
@@ -209,14 +229,6 @@ with app.app_context():
         print("[DB] ✅ Database tables initialized!")
     except Exception as e:
         print(f"[DB] ⚠️  Table creation warning: {e}")
-
-# ==================== PROXY CONFIGURATION ====================
-# Handle proxy headers from Render (HTTPS detection)
-@app.before_request
-def before_request():
-    # Trust X-Forwarded-Proto header from Render proxy
-    if request.headers.get('X-Forwarded-Proto') == 'https':
-        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '0'
 
 # ==================== MEMBER CONFIG ====================
 
