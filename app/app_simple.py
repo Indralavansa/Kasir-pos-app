@@ -544,13 +544,13 @@ def login():
         if admin_count == 0:
             admin = User(
                 username='admin',
-                email='admin@kasirtokosembako.local',
-                is_active=True
+                nama='Administrator',
+                role='admin'
             )
-            admin.set_password('admin123')
+            admin.set_password('Admin123')
             db.session.add(admin)
             db.session.commit()
-            print("[INIT] Admin user created: admin / admin123")
+            print("[INIT] Admin user created: admin / Admin123")
     except Exception as e:
         print(f"[INIT] Could not check/create admin user: {e}")
     
