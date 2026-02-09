@@ -201,6 +201,15 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 csrf = CSRFProtect(app)
 
+# ==================== AUTOMATIC DATABASE INITIALIZATION ====================
+print("[DB] Initializing database tables...")
+with app.app_context():
+    try:
+        db.create_all()
+        print("[DB] ✅ Database tables initialized!")
+    except Exception as e:
+        print(f"[DB] ⚠️  Table creation warning: {e}")
+
 # ==================== PROXY CONFIGURATION ====================
 # Handle proxy headers from Render (HTTPS detection)
 @app.before_request
@@ -529,6 +538,22 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    # Ensure admin user exists (first-time setup)
+    try:
+        admin_count = User.query.filter_by(username='admin').count()
+        if admin_count == 0:
+            admin = User(
+                username='admin',
+                email='admin@kasirtokosembako.local',
+                is_active=True
+            )
+            admin.set_password('admin123')
+            db.session.add(admin)
+            db.session.commit()
+            print("[INIT] Admin user created: admin / admin123")
+    except Exception as e:
+        print(f"[INIT] Could not check/create admin user: {e}")
+    
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     
