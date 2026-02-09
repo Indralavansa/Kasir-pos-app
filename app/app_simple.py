@@ -259,9 +259,8 @@ def serve_img(filename):
 
 @app.before_request
 def check_navigation():
-    # Force HTTP for all requests (prevent HTTPS auto-upgrade)
-    if request.headers.get('X-Forwarded-Proto') == 'https':
-        return redirect(request.url.replace('https://', 'http://'), code=301)
+    # Allow HTTPS on production (Render, etc)
+    # This check is only for local development mismatch, not for HTTPS forcing
     
     if current_user.is_authenticated:
         # If user tries to access login page while logged in, redirect to index

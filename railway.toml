@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Railway deployment setup
+# Railway akan auto-detect Procfile atau run gunicorn
+
+# Pastikan requirements.txt di root folder (sudah ada)
+# Pastikan Procfile ada (sudah ada)
