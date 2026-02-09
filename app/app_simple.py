@@ -522,8 +522,11 @@ def load_user(user_id):
 # ==================== ROUTES ====================
 
 @app.route('/')
-@login_required
 def index():
+    # Manual redirect untuk menghindari loop dengan proxy Render
+    if not current_user.is_authenticated:
+        return redirect(url_for('login'))
+    
     total_produk = Produk.query.count()
     today = date.today()
     total_transaksi_hari_ini = Transaksi.query.filter(db.func.date(Transaksi.tanggal) == today).count()
