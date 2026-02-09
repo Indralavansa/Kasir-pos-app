@@ -12,7 +12,6 @@ from flask_wtf.csrf import CSRFError, generate_csrf
 from wtforms import StringField, PasswordField, SubmitField, DecimalField, IntegerField, SelectField, TextAreaField, HiddenField
 from wtforms.validators import DataRequired, Length, NumberRange, ValidationError, Optional
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.middleware.proxy_fix import ProxyFix
 from datetime import datetime as dt, date
 import json
 import io
@@ -182,23 +181,13 @@ else:
 
 app = Flask(__name__)
 
-# Apply ProxyFix middleware for Render proxy headers (HTTPS, remote addr, etc)
-app.wsgi_app = ProxyFix(
-    app.wsgi_app,
-    x_for=1,        # Trust X-Forwarded-For
-    x_proto=1,      # Trust X-Forwarded-Proto
-    x_host=1,       # Trust X-Forwarded-Host
-    x_port=1,       # Trust X-Forwarded-Port
-    x_prefix=1      # Trust X-Forwarded-Prefix
-)
-
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'rahasia-sangat-rahasia-123456-dev')
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = True
-app.config['REMEMBER_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 # Add connection pool settings for production
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_size': 10,
@@ -214,12 +203,6 @@ login_manager.login_view = 'login'
 login_manager.login_message = 'Silakan login terlebih dahulu'
 login_manager.login_message_category = 'info'
 csrf = CSRFProtect(app)
-
-# ==================== CUSTOM UNAUTHORIZED HANDLER ====================
-@login_manager.unauthorized_handler
-def unauthorized():
-    """Handle unauthorized access cleanly without redirect loops"""
-    return redirect(url_for('login'))
 
 # ==================== AUTOMATIC DATABASE INITIALIZATION ====================
 print("[DB] Initializing database tables...")
@@ -535,21 +518,24 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    # Manual redirect untuk menghindari loop dengan proxy Render
     if not current_user.is_authenticated:
         return redirect(url_for('login'))
     
-    total_produk = Produk.query.count()
-    today = date.today()
-    total_transaksi_hari_ini = Transaksi.query.filter(db.func.date(Transaksi.tanggal) == today).count()
-    produk_habis = Produk.query.filter(Produk.stok <= Produk.minimal_stok).count()
-    
-    return render_template('index.html', 
-                         total_produk=total_produk,
-                         total_transaksi=total_transaksi_hari_ini,
-                         produk_habis=produk_habis,
-                         current_time=get_local_now(),
-                         timezone_name=get_local_timezone_name())
+    try:
+        total_produk = Produk.query.count()
+        today = date.today()
+        total_transaksi_hari_ini = Transaksi.query.filter(db.func.date(Transaksi.tanggal) == today).count()
+        produk_habis = Produk.query.filter(Produk.stok <= Produk.minimal_stok).count()
+        
+        return render_template('index.html', 
+                             total_produk=total_produk,
+                             total_transaksi=total_transaksi_hari_ini,
+                             produk_habis=produk_habis,
+                             current_time=get_local_now(),
+                             timezone_name=get_local_timezone_name())
+    except Exception as e:
+        print(f"[ERROR] Index route: {e}")
+        return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
