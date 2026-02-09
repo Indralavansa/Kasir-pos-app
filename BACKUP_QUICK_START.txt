@@ -1,0 +1,174 @@
+================================================================================
+BACKUP OTOMATIS SYSTEM - QUICK REFERENCE
+================================================================================
+
+SCRIPT LOCATION:
+  - d:\python\tools\backup_otomatis_standalone.py  (NO DEPENDENCIES!)
+  - d:\python\scripts\backup_otomatis.bat (Windows wrapper)
+
+⚡ CARA TERCEPAT:
+
+Option 1 - Double-Click (Simplest):
+  1. Buka folder: d:\python\scripts\
+  2. Double-click: backup_otomatis.bat
+  3. Pilih menu (1-7)
+
+Option 2 - Terminal Commands:
+  cd d:\python
+  python tools\backup_otomatis_standalone.py
+
+📋 MENU OPTIONS (when running without arguments):
+================================================================================
+
+1. Backup Produk (CSV + JSON)
+   → Backup all products to data/ folder
+   
+2. Backup Transaksi (CSV + JSON)
+   → Backup all transactions to data/ folder
+   
+3. Backup Database Lengkap (SQLite)
+   → Database file backup to backups/ folder
+   
+4. Backup Semua ⭐ RECOMMENDED
+   → All 3 above + automatic cleanup
+   → Best for daily use
+   
+5. List Semua Backup
+   → Show all backup files available
+   
+6. Restore Database dari Backup
+   → Interactive restore from list
+   → Auto-saves current DB before restore
+   
+7. Cleanup Backup Lama
+   → Removes old backups (keeps 10 recent)
+   
+0. Keluar / Exit
+
+🔧 COMMAND LINE (Direct Terminal):
+================================================================================
+
+# Backup Produk Only
+python tools\backup_otomatis_standalone.py produk
+
+# Backup Transaksi Only
+python tools\backup_otomatis_standalone.py transaksi
+
+# Backup Database Only
+python tools\backup_otomatis_standalone.py database
+
+# Backup Semua (RECOMMENDED for daily use)
+python tools\backup_otomatis_standalone.py auto
+
+# List all backups
+python tools\backup_otomatis_standalone.py list
+
+# Cleanup old backups
+python tools\backup_otomatis_standalone.py cleanup
+
+# Restore from backup (interactive)
+python tools\backup_otomatis_standalone.py restore
+
+# Show help
+python tools\backup_otomatis_standalone.py --help
+
+⏰ SETUP AUTO BACKUP HARIAN (Windows):
+================================================================================
+
+1. Open Task Scheduler (Win + R, type: taskschd.msc, Enter)
+2. Right-click "Task Scheduler Local" → Create Basic Task
+3. Name: Backup Kasir Otomatis
+4. Trigger: Daily
+5. Time: 23:00 (11 PM - minimal system load)
+6. Action Program: C:\Windows\System32\cmd.exe
+7. Arguments: /c "D:\python\scripts\backup_otomatis.bat auto"
+8. Start in: D:\python
+9. Finish
+10. Test: Right-click task → Run
+
+RECOMMENDED SCHEDULE: Daily 23:00 (midnight sync)
+
+📁 LOKASI FILE BACKUP:
+================================================================================
+
+Database Backups:
+  d:\python\backups\kasir_backup_20250208_233449.db
+  d:\python\backups\kasir_backup_20250208_230613.db
+  (... keeps 10 most recent ...)
+
+Produk & Transaksi CSV/JSON:
+  d:\python\data\backup_produk_*.csv
+  d:\python\data\backup_produk_*.json
+  d:\python\data\backup_transaksi_*.csv
+  d:\python\data\backup_transaksi_*.json
+
+⏮️ HOW TO RESTORE:
+================================================================================
+
+OPTION 1 - Interactive (Recommended):
+  python tools\backup_otomatis_standalone.py restore
+  (Select from list of 5 recent backups)
+
+OPTION 2 - Manual File Copy:
+  1. Copy: d:\python\backups\kasir_backup_YYYYMMDD_HHMMSS.db
+  2. Paste: d:\python\instance\kasir.db (replace)
+  3. Restart application
+
+⚠️ NOTE: Before restore, current DB is automatically backed up as:
+  kasir_backup_before_restore_YYYYMMDD_HHMMSS.db
+
+☑️ WHAT GETS BACKED UP:
+================================================================================
+
+📦 BACKUP PRODUK:
+  ✓ ID, Kode, Nama, Deskripsi
+  ✓ Harga Beli, Harga Jual
+  ✓ Stok, Kategori, Minimal Stok, Satuan
+
+💰 BACKUP TRANSAKSI:
+  ✓ Kode Transaksi, Tanggal
+  ✓ Subtotal, Diskon %, Diskon Rp, Total
+  ✓ Bayar, Kembalian, Metode Pembayaran
+  ✓ Kasir, Member, Points Earned
+  ✓ Detail setiap transaksi item
+
+🗄️ DATABASE:
+  ✓ ALL tables and data
+  ✓ Complete system state
+  ✓ Restore-ready SQLite file
+
+💡 TIPS & BEST PRACTICES:
+================================================================================
+
+✅ DO:
+  ✗ Delete backup files manually
+  ✗ Never test restore process
+
+---
+
+## ❌ Troubleshoot
+
+**Backup gagal?**
+- Check Python installed: `python --version`
+- Check path benar: `cd d:\python`
+- Check folder exists: `d:\python\backups\` dan `d:\python\data\`
+
+**Task Scheduler tidak jalan?**
+- Run as Administrator
+- Check Python path benar
+- Check Event Viewer log
+
+FULL DOCS: d:\python\BACKUP_README.md
+
+**Task Scheduler tidak jalan?**
+- Run as Administrator
+- Check Python path benar
+- Check Event Viewer log
+
+**Perlu bantuan?**
+- Baca: `d:\python\docs\BACKUP_OTOMATIS.md` (lengkap)
+- Support: support@tokosembako.com
+
+---
+
+**Happy Backing Up! 🎉**
