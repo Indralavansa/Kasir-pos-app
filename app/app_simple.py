@@ -164,8 +164,12 @@ else:
     if DATABASE_URL.startswith('postgres://'):
         DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
     
+    # Add explicit psycopg driver for PostgreSQL (required for psycopg 3.x)
+    if DATABASE_URL.startswith('postgresql://'):
+        DATABASE_URL = DATABASE_URL.replace('postgresql://', 'postgresql+psycopg://', 1)
+    
     # Validate that URL looks reasonable
-    if not ('postgresql://' in DATABASE_URL or 'sqlite:///' in DATABASE_URL):
+    if not ('postgresql+psycopg://' in DATABASE_URL or 'postgresql://' in DATABASE_URL or 'sqlite:///' in DATABASE_URL):
         print(f"[DB] WARNING: Invalid DATABASE_URL format")
         print(f"[DB] Got: {DATABASE_URL[:50]}...")
         # Fallback to SQLite
