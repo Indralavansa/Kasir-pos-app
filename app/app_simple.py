@@ -185,6 +185,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['REMEMBER_COOKIE_SECURE'] = True
 # Add connection pool settings for production
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_size': 10,
@@ -198,6 +200,14 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 csrf = CSRFProtect(app)
+
+# ==================== PROXY CONFIGURATION ====================
+# Handle proxy headers from Render (HTTPS detection)
+@app.before_request
+def before_request():
+    # Trust X-Forwarded-Proto header from Render proxy
+    if request.headers.get('X-Forwarded-Proto') == 'https':
+        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '0'
 
 # ==================== MEMBER CONFIG ====================
 
