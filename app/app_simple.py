@@ -149,18 +149,31 @@ def backup_database():
 # Get base directory
 base_app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Database Configuration
-# Try to get from environment variable (Render/Production)
-DATABASE_URL = os.getenv('DATABASE_URL')
+# Database Configuration with better error handling
+DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
 
-# If not set, use SQLite (Local development)
-if not DATABASE_URL:
+print(f"[DB] DATABASE_URL env set: {bool(DATABASE_URL)}")
+
+# If not set or empty, use SQLite (Local development)
+if not DATABASE_URL or DATABASE_URL == 'None':
     db_path = os.path.join(base_app_dir, 'instance', 'kasir.db')
     DATABASE_URL = f'sqlite:///{db_path.replace(os.sep, "/")}'
+    print(f"[DB] Using SQLite: {DATABASE_URL[:50]}...")
 else:
-    # Convert postgres:// to postgresql:// for SQLAlchemy 1.4+
+    # Validate & convert postgres:// to postgresql:// for SQLAlchemy 1.4+
     if DATABASE_URL.startswith('postgres://'):
         DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+    
+    # Validate that URL looks reasonable
+    if not ('postgresql://' in DATABASE_URL or 'sqlite:///' in DATABASE_URL):
+        print(f"[DB] WARNING: Invalid DATABASE_URL format")
+        print(f"[DB] Got: {DATABASE_URL[:50]}...")
+        # Fallback to SQLite
+        db_path = os.path.join(base_app_dir, 'instance', 'kasir.db')
+        DATABASE_URL = f'sqlite:///{db_path.replace(os.sep, "/")}'
+        print(f"[DB] Falling back to SQLite")
+    else:
+        print(f"[DB] Using PostgreSQL: {DATABASE_URL.split('@')[0][:50]}...")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'rahasia-sangat-rahasia-123456-dev')
@@ -168,6 +181,14 @@ app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
+# Add connection pool settings for production
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_size': 10,
+    'pool_recycle': 3600,
+    'pool_pre_ping': True,
+}
+
+print(f"[DB] Final DATABASE_URI: {DATABASE_URL[:70]}...")
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
